@@ -1,0 +1,60 @@
+#################
+# This format is from the official documentation of Kubernetes
+# https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+#################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: energi3-core
+  labels:
+    app: energi3-core
+spec:
+  ports:
+  - port: 39796
+    name: 
+  clusterIP: None
+  selector:
+    app: nrg-energi3
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: energi3-core
+spec:
+  selector:
+    matchLabels:
+      app: nrg-energi3 # has to match .spec.template.metadata.labels
+  serviceName: "energi3"
+  replicas: 3 # by default is 1
+  minReadySeconds: 10 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: nrg-energi3 # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nrg-energi3
+        image: nrg-energi3:latest
+        ports:
+          # See: https://wiki.energi.world/docs/guides/core-node-parameters
+          # Assumes that it will use the default parameter
+          #     --rpcport value HTTP-RPC server listening port (default: 39796)
+        - containerPort: 39796
+          name: nrg-energi3
+        volumeMounts:
+          # See: https://wiki.energi.world/docs/guides/core-node-parameters
+          # Assumes that it will use the default parameter
+          #     --datadir "/home/nrgstaker/.energicore3"
+        - name: nrg-energi3-data
+          mountPath: /home/nrgstaker/.energicore3
+  volumeClaimTemplates:
+  - metadata:
+      name: nrg-energi3-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]  # Change to ReadWriteOncePod if needed
+      storageClassName: "nrg-energi3-data"
+      resources:
+        requests:
+          storage: 500Gi # Change >500Gi if needed
